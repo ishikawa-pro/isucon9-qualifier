@@ -396,14 +396,10 @@ func getUser(r *http.Request) (user User, errCode int, errMsg string) {
 }
 
 func getUserSimpleByID(q sqlx.Queryer, userID int64) (userSimple UserSimple, err error) {
-	userSimpleData := UserSimple{}
-	err = sqlx.Get(q, &userSimpleData, "SELECT id, account_name, num_sell_items FROM `users` WHERE `id` = ?", userID)
+	err = sqlx.Get(q, &userSimple, "SELECT id, account_name, num_sell_items FROM `users` WHERE `id` = ?", userID)
 	if err != nil {
-		return userSimpleData, err
+		return userSimple, err
 	}
-	userSimple.ID = userSimpleData.ID
-	userSimple.AccountName = userSimpleData.AccountName
-	userSimple.NumSellItems = userSimpleData.NumSellItems
 	return userSimple, err
 }
 
