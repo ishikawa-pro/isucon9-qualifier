@@ -629,9 +629,9 @@ func getNewCategoryItems(w http.ResponseWriter, r *http.Request) {
 
 	// rootCategory, err := getCategoryByID(dbx, rootCategoryID)
 	rootCategory := Category{}
-	rootCategoryFetchErr = sqlx.Get(q, &rootCategory, "SELECT * FROM `categories` WHERE `id` = ?", rootCategoryID)
+	rootCategoryFetchErr := dbx.Get(&rootCategory, "SELECT * FROM `categories` WHERE `id` = ?", rootCategoryID)
 	if rootCategoryFetchErr != nil {
-		log.Print(err)
+		log.Print(rootCategoryFetchErr)
 		outputErrorMsg(w, http.StatusInternalServerError, "db error")
 		return
 	}
