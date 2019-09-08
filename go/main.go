@@ -567,11 +567,21 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 		categoriesMap[categories[i].ID] = categories[i]
 	}
 
-	sellerIDList := []int64
-	for item := range items {
-		sellerIDList.append(item.SellerID)
+	sellerIDList := []int64{}
+	for _, item := range items {
+			sellerIDList = append(sellerIDList, item.SellerID)
 	}
-	fmt.Printf(sellerIDList);
+	sellerList := []UserSimple{}
+	sellerFetchErr := dbx.Select(&sellerList,
+		"SELECT id, account_name, num_sell_items FROM `users` WHERE `id` IN (?)"
+		sellerIDList,
+	)
+	if err != nil {
+		log.Print(err)
+		outputErrorMsg(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	fmt.Printf("%d\n", sellerList);
 
 	itemSimples := []ItemSimple{}
 	for _, item := range items {
