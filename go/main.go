@@ -555,8 +555,8 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 
 	// categoryを全部取得
 	categories := []Category{}
-	err := dbx.Select(&categories, "SELECT * FROM `categories`")
-	if err != nil {
+	categoryFetchErr := dbx.Select(&categories, "SELECT * FROM `categories`")
+	if categoryFetchErr != nil {
 		log.Print(err)
 		outputErrorMsg(w, http.StatusInternalServerError, "db error")
 		return
