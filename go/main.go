@@ -627,7 +627,14 @@ func getNewCategoryItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rootCategory, err := getCategoryByID(dbx, rootCategoryID)
+	// rootCategory, err := getCategoryByID(dbx, rootCategoryID)
+	rootCategory := Category{}
+	rootCategoryFetchErr = sqlx.Get(q, &rootCategory, "SELECT * FROM `categories` WHERE `id` = ?", rootCategoryID)
+	if rootCategoryFetchErr != nil {
+		log.Print(err)
+		outputErrorMsg(w, http.StatusInternalServerError, "db error")
+		return
+	}
 	if err != nil || rootCategory.ParentID != 0 {
 		outputErrorMsg(w, http.StatusNotFound, "category not found")
 		return
@@ -706,6 +713,11 @@ func getNewCategoryItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	categoriesMap, categoryFetchErr := getCategoriesMap()
+	if categoryFetchErr != nil {
+		outputErrorMsg(w, http.StatusNotFound, "category not found")
+		return
+	}
 	itemSimples := []ItemSimple{}
 	for _, item := range items {
 		seller, err := getUserSimpleByID(dbx, item.SellerID)
@@ -713,7 +725,10 @@ func getNewCategoryItems(w http.ResponseWriter, r *http.Request) {
 			outputErrorMsg(w, http.StatusNotFound, "seller not found")
 			return
 		}
-		category, err := getCategoryByID(dbx, item.CategoryID)
+		// category, err := getCategoryByID(dbx, item.CategoryID)
+		category := categoriesMap[item.CategoryID]
+		category.ParentCategoryName = categoriesMap[category.ParentID].CategoryName
+
 		if err != nil {
 			outputErrorMsg(w, http.StatusNotFound, "category not found")
 			return
