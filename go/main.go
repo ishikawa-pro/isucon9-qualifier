@@ -415,6 +415,21 @@ func getCategoryByID(q sqlx.Queryer, categoryID int) (category Category, err err
 	return category, err
 }
 
+func getCategoriesMap() (categoriesMap map[int]Category, err error) {
+	// categoryを全部取得
+	var categories []Category
+	categoriesMap = make(map[int]Category)
+	err = dbx.Select(&categories, "SELECT * FROM `categories`")
+	if err != nil {
+		return categoriesMap, err
+	}
+	// [id: Category]のオブジェクト作成
+	for i := 0; i < len(categories); i++ {
+		categoriesMap[categories[i].ID] = categories[i]
+	}
+	return categoriesMap, err
+}
+
 func getConfigByName(name string) (string, error) {
 	config := Config{}
 	err := dbx.Get(&config, "SELECT * FROM `configs` WHERE `name` = ?", name)
@@ -552,19 +567,10 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
-	// categoryを全部取得
-	categories := []Category{}
-	categoryFetchErr := dbx.Select(&categories, "SELECT * FROM `categories`")
+	categoriesMap, categoryFetchErr := getCategoriesMap()
 	if categoryFetchErr != nil {
-		log.Print(err)
-		outputErrorMsg(w, http.StatusInternalServerError, "db error")
+		outputErrorMsg(w, http.StatusNotFound, "category not found")
 		return
-	}
-	// [id: Category]のオブジェクト作成
-	categoriesMap := make(map[int]Category)
-	for i := 0; i < len(categories); i++ {
-		categoriesMap[categories[i].ID] = categories[i]
 	}
 
 	itemSimples := []ItemSimple{}
@@ -582,8 +588,7 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 		// }
 		//作成したCategoriesMapからCategory生成
 		category := categoriesMap[item.CategoryID]
-		parentCategory := categoriesMap[category.ParentID]
-		category.ParentCategoryName = parentCategory.CategoryName
+		category.ParentCategoryName = categoriesMap[category.ParentID].CategoryName
 
 		itemSimples = append(itemSimples, ItemSimple{
 			ID:         item.ID,
@@ -622,7 +627,14 @@ func getNewCategoryItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rootCategory, err := getCategoryByID(dbx, rootCategoryID)
+	// rootCategory, err := getCategoryByID(dbx, rootCategoryID)
+	rootCategory := Category{}
+	rootCategoryFetchErr := dbx.Get(&rootCategory, "SELECT * FROM `categories` WHERE `id` = ?", rootCategoryID)
+	if rootCategoryFetchErr != nil {
+		log.Print(rootCategoryFetchErr)
+		outputErrorMsg(w, http.StatusInternalServerError, "db error")
+		return
+	}
 	if err != nil || rootCategory.ParentID != 0 {
 		outputErrorMsg(w, http.StatusNotFound, "category not found")
 		return
@@ -701,6 +713,11 @@ func getNewCategoryItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	categoriesMap, categoryFetchErr := getCategoriesMap()
+	if categoryFetchErr != nil {
+		outputErrorMsg(w, http.StatusNotFound, "category not found")
+		return
+	}
 	itemSimples := []ItemSimple{}
 	for _, item := range items {
 		seller, err := getUserSimpleByID(dbx, item.SellerID)
@@ -708,7 +725,10 @@ func getNewCategoryItems(w http.ResponseWriter, r *http.Request) {
 			outputErrorMsg(w, http.StatusNotFound, "seller not found")
 			return
 		}
-		category, err := getCategoryByID(dbx, item.CategoryID)
+		// category, err := getCategoryByID(dbx, item.CategoryID)
+		category := categoriesMap[item.CategoryID]
+		category.ParentCategoryName = categoriesMap[category.ParentID].CategoryName
+
 		if err != nil {
 			outputErrorMsg(w, http.StatusNotFound, "category not found")
 			return
