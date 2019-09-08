@@ -567,6 +567,12 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 		categoriesMap[categories[i].ID] = categories[i]
 	}
 
+	sellerIDList := []int64
+	for item := range items {
+		sellerIDList.append(item.SellerID)
+	}
+	fmt.Printf(sellerIDList);
+
 	itemSimples := []ItemSimple{}
 	for _, item := range items {
 		seller, err := getUserSimpleByID(dbx, item.SellerID)
