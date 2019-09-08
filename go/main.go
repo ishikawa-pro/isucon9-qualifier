@@ -567,6 +567,11 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	categoriesMap, categoryFetchErr := getCategoriesMap()
+	if categoryFetchErr != nil {
+		outputErrorMsg(w, http.StatusNotFound, "category not found")
+		return
+	}
 
 	itemSimples := []ItemSimple{}
 	for _, item := range items {
@@ -582,14 +587,8 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 		// 	return
 		// }
 		//作成したCategoriesMapからCategory生成
-		categoriesMap, categoryFetchErr := getCategoriesMap()
-		if categoryFetchErr != nil {
-			outputErrorMsg(w, http.StatusNotFound, "category not found")
-			return
-		}
 		category := categoriesMap[item.CategoryID]
-		parentCategory := categoriesMap[category.ParentID]
-		category.ParentCategoryName = parentCategory.CategoryName
+		category.ParentCategoryName = categoriesMap[category.ParentID].CategoryName
 
 		itemSimples = append(itemSimples, ItemSimple{
 			ID:         item.ID,
