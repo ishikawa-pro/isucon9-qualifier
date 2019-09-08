@@ -417,19 +417,17 @@ func getCategoryByID(q sqlx.Queryer, categoryID int) (category Category, err err
 
 func getCategoriesMap() (categoriesMap map[int]Category, err error) {
 	// categoryを全部取得
-	categories := []Category{}
-	categoryFetchErr := dbx.Select(&categories, "SELECT * FROM `categories`")
-	if categoryFetchErr != nil {
-		log.Print(err)
-		outputErrorMsg(w, http.StatusInternalServerError, "db error")
-		return
+	var categories []Category
+	categoriesMap = make(map[int]Category)
+	err = dbx.Select(&categories, "SELECT * FROM `categories`")
+	if err != nil {
+		return categoriesMap, err
 	}
 	// [id: Category]のオブジェクト作成
-	categoriesMap := make(map[int]Category)
 	for i := 0; i < len(categories); i++ {
 		categoriesMap[categories[i].ID] = categories[i]
 	}
-	return categoriesMap
+	return categoriesMap, err
 }
 
 func getConfigByName(name string) (string, error) {
@@ -584,7 +582,11 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 		// 	return
 		// }
 		//作成したCategoriesMapからCategory生成
-		categoriesMap := getCategoriesMap()
+		categoriesMap, categoryFetchErr := getCategoriesMap()
+		if categoryFetchErr != nil {
+			outputErrorMsg(w, http.StatusNotFound, "category not found")
+			return
+		}
 		category := categoriesMap[item.CategoryID]
 		parentCategory := categoriesMap[category.ParentID]
 		category.ParentCategoryName = parentCategory.CategoryName
