@@ -415,6 +415,23 @@ func getCategoryByID(q sqlx.Queryer, categoryID int) (category Category, err err
 	return category, err
 }
 
+func getCategoriesMap() (categoriesMap map[int]Category, err error) {
+	// categoryを全部取得
+	categories := []Category{}
+	categoryFetchErr := dbx.Select(&categories, "SELECT * FROM `categories`")
+	if categoryFetchErr != nil {
+		log.Print(err)
+		outputErrorMsg(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	// [id: Category]のオブジェクト作成
+	categoriesMap := make(map[int]Category)
+	for i := 0; i < len(categories); i++ {
+		categoriesMap[categories[i].ID] = categories[i]
+	}
+	return categoriesMap
+}
+
 func getConfigByName(name string) (string, error) {
 	config := Config{}
 	err := dbx.Get(&config, "SELECT * FROM `configs` WHERE `name` = ?", name)
@@ -553,20 +570,6 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// categoryを全部取得
-	categories := []Category{}
-	categoryFetchErr := dbx.Select(&categories, "SELECT * FROM `categories`")
-	if categoryFetchErr != nil {
-		log.Print(err)
-		outputErrorMsg(w, http.StatusInternalServerError, "db error")
-		return
-	}
-	// [id: Category]のオブジェクト作成
-	categoriesMap := make(map[int]Category)
-	for i := 0; i < len(categories); i++ {
-		categoriesMap[categories[i].ID] = categories[i]
-	}
-
 	itemSimples := []ItemSimple{}
 	for _, item := range items {
 		seller, err := getUserSimpleByID(dbx, item.SellerID)
@@ -581,6 +584,7 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 		// 	return
 		// }
 		//作成したCategoriesMapからCategory生成
+		categoriesMap := getCategoriesMap()
 		category := categoriesMap[item.CategoryID]
 		parentCategory := categoriesMap[category.ParentID]
 		category.ParentCategoryName = parentCategory.CategoryName
