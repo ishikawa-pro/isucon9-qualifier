@@ -561,8 +561,11 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 		outputErrorMsg(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	fmt.Printf("%d\n", categories);
 	// [id: Category]のオブジェクト作成
+	categoriesMap := make(map[int]Category)
+	for i := 0; i < len(categories); i++ {
+		categoriesMap[categories[i].ID] = categories[i]
+	}
 
 	itemSimples := []ItemSimple{}
 	for _, item := range items {
@@ -571,11 +574,17 @@ func getNewItems(w http.ResponseWriter, r *http.Request) {
 			outputErrorMsg(w, http.StatusNotFound, "seller not found")
 			return
 		}
-		category, err := getCategoryByID(dbx, item.CategoryID)
-		if err != nil {
-			outputErrorMsg(w, http.StatusNotFound, "category not found")
-			return
-		}
+
+		// category, err := getCategoryByID(dbx, item.CategoryID)
+		// if err != nil {
+		// 	outputErrorMsg(w, http.StatusNotFound, "category not found")
+		// 	return
+		// }
+		//作成したCategoriesMapからCategory生成
+		category := categoriesMap[item.CategoryID]
+		parentCategory := categoriesMap[category.ParentID]
+		category.ParentCategoryName = parentCategory.CategoryName
+
 		itemSimples = append(itemSimples, ItemSimple{
 			ID:         item.ID,
 			SellerID:   item.SellerID,
